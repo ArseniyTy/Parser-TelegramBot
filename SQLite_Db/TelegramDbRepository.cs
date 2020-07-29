@@ -11,10 +11,10 @@ namespace Parser.SQLite_Db
         {
             var db = new TelegramContext();
             return db.Users
-                .Where(u => u.Status == Status.Update)
+                .Where(u => u.Status == Status.ToNotify)
                 .ToList();
         }
-        public static Status GetStatus(long id)
+        public static Status GetStatusAndCreateIfNotExist(long id)
         {
             var db = new TelegramContext();
             var user = db.Users.FirstOrDefault(u => u.Id == id);
@@ -23,7 +23,7 @@ namespace Parser.SQLite_Db
                 db.Users.Add(new User()
                 {
                     Id = id,
-                    Status = Status.Start,
+                    Status = Status.Default,
                 });
                 db.SaveChanges();
                 user = db.Users.FirstOrDefault(u => u.Id == id);
@@ -35,7 +35,7 @@ namespace Parser.SQLite_Db
             return user.Status;
         }
 
-        public static void UpdateUser(long id, Status? status = null, string spec = null, bool? documentsApplied = null, uint? score = null)
+        public static void UpdateUser(long id, Status? status = null, string spec = null, uint? score = null)
         {
             var db = new TelegramContext();
             var user = db.Users.FirstOrDefault(u => u.Id == id);
@@ -45,8 +45,6 @@ namespace Parser.SQLite_Db
                     user.Status = (Status) status;
                 if (spec != null)
                     user.Spec = spec;
-                if (documentsApplied != null)
-                    user.IfDocumentsApplied = documentsApplied;
                 if (score != null && score >= 0)
                     user.CTScore = score;
 

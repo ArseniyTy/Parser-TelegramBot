@@ -6,12 +6,10 @@ namespace Parser.SQLite_Db
 {
     enum Status
     {
-        Start,
-        //Faculty,
-        Spec,
-        IfDocumentsApplied,
-        Score,
-        //UpdateOptions,
-        Update
+        Default,
+        SpecEnterWaiting,
+        ToNotify_SpecEnterWaiting,
+        ToNotify_ScoreEnterWaiting,
+        ToNotify
     }
 }

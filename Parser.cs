@@ -14,25 +14,23 @@ namespace Parser
         private static readonly IBrowsingContext context = BrowsingContext.New(config);
         private const string URL = "https://abit.bsu.by/formk1?id=1";
 
+        public static async Task<string> ToString_GetSpecUpdateAsync(string spec, uint userScore)
+        {
+            var info = await GetSpecInfoAsync(spec);
 
-        //public static async Task Console_GetFacultiesAsync(string spec)
-        //{
-        //    var info = await GetSpecInfoAsync(spec);
-
-        //    foreach (var infoObj in info)
-        //    {
-        //        var dict = infoObj.Value as Dictionary<string, int>;
-        //        if (dict != null)
-        //        {
-        //            Console.WriteLine($"{infoObj.Key}:");
-        //            foreach (var score in dict)
-        //                Console.WriteLine($"\t{score.Key}:\t{score.Value}");
-        //        }
-        //        else
-        //            Console.WriteLine($"{infoObj.Key}:\t{infoObj.Value}");
-        //    }
-        //}
-
+            var dictScore = (Dictionary<string, int>) info["Распределение по баллам"];
+            int maxPeople = (int) info["Макс на бюджет"];
+            int peopleCount = (int) info["Олимпиадники"];
+            foreach (var score in dictScore)
+            {
+                uint u_bound = uint.Parse(score.Key.Split('-')[1]);
+                if (userScore <= u_bound)
+                    peopleCount+= score.Value;
+            }
+            string toReturn = $"Вы {peopleCount}/{maxPeople} в конкурсе (в худшем случае)!\n" +
+                              $"На специальности {info["Олимпиадники"]} олимпиадников";
+            return toReturn;
+        }
         public static async Task<string> ToString_GetSpecInfoAsync(string spec)
         {
             var info = await GetSpecInfoAsync(spec);
@@ -40,11 +38,10 @@ namespace Parser
             string toReturn = "";
             foreach (var infoObj in info)
             {
-                var dict = infoObj.Value as Dictionary<string, int>;
-                if (dict != null)
+                if(infoObj.Key== "Распределение по баллам")
                 {
                     toReturn += $"\n{infoObj.Key}:";
-                    foreach (var score in dict)
+                    foreach (var score in (Dictionary<string, int>)infoObj.Value)
                         toReturn += $"\n\t{score.Key}:\t{score.Value}";
                 }
                 else
@@ -70,7 +67,7 @@ namespace Parser
                            .ToList();
         }
 
-        public async static Task<Dictionary<string, object>> GetSpecInfoAsync(string spec)
+        private async static Task<Dictionary<string, object>> GetSpecInfoAsync(string spec)
         {
             var document = await context.OpenAsync(URL);
             var updateTime = document.QuerySelector("#Abit_K11_lbCurrentDateTime").TextContent;
@@ -82,12 +79,14 @@ namespace Parser
 
             var scoreDict = new Dictionary<string, int>();
             int scorePrefix = 40;
-            for (int i=8; i < specData.Count - 1; i++)
+            for (int i = 8; i < specData.Count - 1; i++)
             {
                 string key = $"{scorePrefix - 1}1-{scorePrefix--}0"; //will be: "391-400"
-                scoreDict.Add(key, specData[i] == "" ? 0 : int.Parse(specData[i]));
+                if(specData[i] != "")
+                    scoreDict.Add(key, int.Parse(specData[i]));
             }
-            scoreDict.Add("000-120", specData[specData.Count - 1] == "" ? 0 : int.Parse(specData[specData.Count - 1]));
+            if (specData[specData.Count - 1] != "")
+                scoreDict.Add("000-120", int.Parse(specData[specData.Count - 1]));
             
             //int peopleLess340Count = 0;
             //for (int i = 14; i < specData.Count; i++)

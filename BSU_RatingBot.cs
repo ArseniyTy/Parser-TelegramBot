@@ -11,6 +11,11 @@ using Telegram.Bot.Args;
 
 namespace Parser
 {
+    //TODO: 1) Поставить, чтобы он обновлял только если что-то меняется (просматривает 
+    // сначала дату, а потом старую позицию (поместить в бд)!
+    // поставить, чтобы чекал раз в минуту мб
+    // 2) Захостить
+    // 3) Сделать кнопки по выбору специальностей!
     static class BSU_RatingBot
     {
         private static Timer _timer;
@@ -43,7 +48,7 @@ namespace Parser
             var users = TelegramDbRepository.GetAllNotifyUsers();
             foreach(var user in users)
             {
-                string message = await Parser.ToString_GetSpecInfoAsync(user.Spec);
+                string message = await Parser.ToString_GetSpecUpdateAsync(user.Spec, (uint) user.CTScore);
                 await _botClient.SendTextMessageAsync(
                   chatId: user.Id,
                   text: message
@@ -62,90 +67,95 @@ namespace Parser
                 //само состояние можно через enum попробовать
 
                 long id = e.Message.Chat.Id;
-                var status = TelegramDbRepository.GetStatus(id);
+                var status = TelegramDbRepository.GetStatusAndCreateIfNotExist(id);
                 Console.WriteLine(status);
                 string textToSend = "";
-                switch(status)
+                switch (status)
                 {
-                    case Status.Start:
+                    case Status.Default:
+                    case Status.ToNotify:
                         {
-                            textToSend = "Данный бот позволяет следить за вашей позицией " +
-                                "в рейтинге абитуриентов БГУ. Но сначало " +
-                                "необходимо узнать ваши данные (если вы ввели что-то " +
-                                "неправильно, то позже будет возможность это исправить). " +
-                                "Итак, на какую специальность вы поступаете?";
-                            //TelegramDbRepository.UpdateUser(id, Status.Faculty);
-                            TelegramDbRepository.UpdateUser(id, Status.Spec);
+                            switch(e.Message.Text)
+                            {
+                                case "/start":
+                                case "/help":
+                                    {
+                                        textToSend = "У бота есть несколько доступных команд:\n" +
+                                            "1) /help - получение инструкции (что вы читаете сейчас)\n" +
+                                            "2) /info - получение информации о любой специальности\n" +
+                                            "3) /notify - начать получать уведомления об изменении вашей " +
+                                            "позиции в конкурсе\n" +
+                                            "4) /no_notify - отмена уведомлений";
+                                        break;
+                                    }
+                                case "/info":
+                                    {
+                                        textToSend = "Введите специальность:";
+                                        TelegramDbRepository.UpdateUser(id, Status.SpecEnterWaiting);
+                                        break;
+                                    }
+                                case "/notify":
+                                    {
+                                        textToSend = "Введите вашу специальность:";
+                                        TelegramDbRepository.UpdateUser(id, Status.ToNotify_SpecEnterWaiting);
+                                        break;
+                                    }
+                                case "/no_notify":
+                                    {
+                                        textToSend = "Вы больше не получаете уведомлений";
+                                        TelegramDbRepository.UpdateUser(id, Status.Default);
+                                        break;
+                                    }
+                                default:
+                                    {
+                                        textToSend = "Введите /help для того, чтобы узнать, что я умею!";
+                                        break;
+                                    }
+                            }
                             break;
                         }
-                    //case Status.Faculty:
-                    //    {
-                    //        textToSend = "Пока что ФАКУЛЬТЕТ не обработан!";
-                    //        TelegramDbRepository.UpdateUser(id, Status.Spec);
-                    //        break;
-                    //    }
-                    case Status.Spec:
+                    case Status.SpecEnterWaiting:
                         {
-                            var spec = await Parser.GetSpecRowAsync(e.Message.Text);
-                            if(spec==null)
+                            try
+                            {
+                                textToSend = await Parser.ToString_GetSpecInfoAsync(e.Message.Text.ToLower());
+                                TelegramDbRepository.UpdateUser(id, Status.Default);
+                            }
+                            catch
+                            {
+                                textToSend = "Такой специальности не существует! Введите ещё раз:";
+                            }
+                            break;
+                        }
+                    case Status.ToNotify_SpecEnterWaiting:
+                        {
+                            var spec = await Parser.GetSpecRowAsync(e.Message.Text.ToLower());
+                            if (spec == null)
                                 textToSend = "Такой специальности не существует! Введите данные ещё раз";
                             else
                             {
-                                textToSend = "Отлично! Вы уже подали документы в приёмную комиссию? (да/нет)";
-                                TelegramDbRepository.UpdateUser(id, Status.IfDocumentsApplied, e.Message.Text.ToLower());
-                            }
-                            break;
-                        }
-                    case Status.IfDocumentsApplied:
-                        {
-                            bool? value = null;
-                            if (e.Message.Text.ToLower() == "да")
-                                value = true;
-                            else if (e.Message.Text.ToLower() == "нет")
-                                value = false;
-                            
-                            if(value!=null)
-                            {
                                 textToSend = "Отлично! Теперь напишите ваш балл:";
-                                TelegramDbRepository.UpdateUser(id, Status.Score, documentsApplied: value);
+                                TelegramDbRepository.UpdateUser(id, Status.ToNotify_ScoreEnterWaiting, e.Message.Text.ToLower());
                             }
-                            else
-                                textToSend = "Введите да/нет!";
-
                             break;
                         }
-                    case Status.Score:
+                    case Status.ToNotify_ScoreEnterWaiting:
                         {
                             uint score;
                             try { score = uint.Parse(e.Message.Text); }
-                            catch 
-                            { 
+                            catch
+                            {
                                 textToSend = "Неправильный формат ввода! Введите ещё раз!";
                                 break;
                             }
-                            if(score>400)
+                            if (score > 400)
                             {
-                                textToSend = "Балл должен быть меньше 400! Введите ещё раз!";
+                                textToSend = "Балл всегда меньше 400! Введите ещё раз!";
                                 break;
                             }
 
-                            //textToSend = "Отлично! Осталось последнее: как часто вы хотите получать уведомления?";
-                            //TelegramDbRepository.UpdateUser(id, Status.UpdateOptions, score: score);
-                            textToSend = "Всё готово! Теперь при изменении вашей позиции в рейтинге бот будет вас " +
-                                "уведомлять об этом. Бот также может выполнять другие полезные функции (напишите " +
-                                "help, чтобы узнать больше!";
-                            TelegramDbRepository.UpdateUser(id, Status.Update, score: score);
-                            break;
-                        }
-                    //case Status.UpdateOptions:
-                    //    {
-                    //        textToSend = "Пока что не обработан!";
-                    //        break;
-                    //    }
-                    case Status.Update:
-                        {
-                            //обработка help и других команд
-                            textToSend = "Пока что не обработан!";
+                            textToSend = "Всё готово! Теперь вам будут приходить уведомления!";
+                            TelegramDbRepository.UpdateUser(id, Status.ToNotify, score: score);
                             break;
                         }
                 }
