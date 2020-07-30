@@ -60,15 +60,12 @@ namespace Parser
         {
             if (e.Message.Text != null)
             {
-                Console.WriteLine($"Received a text message in chat {e.Message.Chat.Id}.");
+                //Console.WriteLine($"Received a text message in chat {e.Message.Chat.Id}.");
 
-                //проверяю, есть ли такой чат в бд, если нет добавляю и ставлю начальное состояние
-                //если есть, то беру текущее состояние. Потом через switch отвечаю на это состояние
-                //само состояние можно через enum попробовать
 
                 long id = e.Message.Chat.Id;
                 var status = TelegramDbRepository.GetStatusAndCreateIfNotExist(id);
-                Console.WriteLine(status);
+                //Console.WriteLine(status);
 
                 string textToSend = "";
                 var replyKeyboardMarkup = new ReplyKeyboardMarkup();

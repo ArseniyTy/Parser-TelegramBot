@@ -12,22 +12,19 @@ namespace Parser
     {
         static async Task Main()
         {
-            using (var db = new TelegramContext())
-            {
-                db.Database.Migrate();
-            }
+            //using (var db = new TelegramContext())
+            //{
+            //    db.Database.Migrate();
+            //}
 
 
             BSU_RatingBot.StartReceiving();
             Console.WriteLine("Press any key to exit");
             Console.ReadKey();
-
             BSU_RatingBot.StopReceiving();
 
 
-
-            //string specPI = "прикладная информатика (направление - программное обеспечение компьютерных систем)";
-            //Console.WriteLine(await Parser.ToString_GetSpecInfoAsync(specPI));
+            //Console.WriteLine(await Parser.ToString_GetSpecInfoAsync("экономическая информатика"));
         }
     }
 }

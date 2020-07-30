@@ -112,7 +112,7 @@ namespace Parser
                 { "Заявлений", int.Parse(specData[4]) },
                 { "Макс на бюджет", int.Parse(specData[1]) },
                 { "Макс на платку", int.Parse(specData[3]) },
-                { "Олимпиадники", int.Parse(specData[6]) },
+                { "Олимпиадники", specData[6] == "" ? 0 : int.Parse(specData[6]) },
                 { "Распределение по баллам", scoreDict },
             };
             return info;

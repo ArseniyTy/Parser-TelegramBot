@@ -27,10 +27,10 @@ namespace Parser.SQLite_Db
                 });
                 db.SaveChanges();
                 user = db.Users.FirstOrDefault(u => u.Id == id);
-                Console.WriteLine("User added to db");
+                //Console.WriteLine("User added to db");
             }
-            else
-                Console.WriteLine("User is already in db");
+            //else
+            //    Console.WriteLine("User is already in db");
 
             return user.Status;
         }
@@ -50,10 +50,10 @@ namespace Parser.SQLite_Db
 
                 db.Users.Update(user);
                 db.SaveChanges();
-                Console.WriteLine("User Updated!");
+                //Console.WriteLine("User Updated!");
             }
-            else
-                Console.WriteLine("EXCEPTION!!!!!!!!!");
+            //else
+            //    Console.WriteLine("EXCEPTION!!!!!!!!!");
         }
 
         public static DateTime? LastUpdateTime
