@@ -87,32 +87,56 @@ namespace Parser
             if (specData == null)
                 throw new Exception("specData is null!");
 
+            int olimpCount = specData[6] == "" ? 0 : int.Parse(specData[6]);
+            int leftForFree = int.Parse(specData[1])- olimpCount;
+            string enterScore = "все приняты";
+            int allScore = 0;
 
             var scoreDict = new Dictionary<string, int>();
-            int scorePrefix = 40;
-            for (int i = 8; i < specData.Count - 1; i++)
+            int scorePrefix = 400;
+            int i = 8;
+            while(i < specData.Count)
             {
-                string key = $"{scorePrefix - 1}1-{scorePrefix--}0"; //will be: "391-400"
-                if(specData[i] != "")
-                    scoreDict.Add(key, int.Parse(specData[i]));
+                int numOfPeople = specData[i] == "" ? 0 : int.Parse(specData[i]);
+                if (numOfPeople != 0)
+                {
+                    string key;
+                    if (i == specData.Count - 1)
+                    {
+                        key = "000-120";
+                        allScore += numOfPeople * 100;
+                    }
+                    else
+                    {
+                        key = $"{scorePrefix - 9}-{scorePrefix}"; //will be: "391-400"
+                        allScore += numOfPeople * (scorePrefix - 5);
+                    }
+                    scoreDict.Add(key, numOfPeople);
+
+
+                    leftForFree -= numOfPeople;
+                    if (leftForFree <= 0 && enterScore== "все приняты")
+                        enterScore = key;
+                }
+                scorePrefix -= 10;
+                i++;
             }
-            if (specData[specData.Count - 1] != "")
-                scoreDict.Add("000-120", int.Parse(specData[specData.Count - 1]));
-            
-            //int peopleLess340Count = 0;
-            //for (int i = 14; i < specData.Count; i++)
-            //    peopleLess340Count += specData[i] != "" ? int.Parse(specData[i]) : 0;
-            //scoreDict.Add("000-340", peopleLess340Count);
 
 
+            int applications = specData[4]=="" ? 0 : int.Parse(specData[4]);
             var info = new Dictionary<string, Object>
             {
                 { "Специальность", spec },
                 { "Последнее обновление", updateTime },
-                { "Заявлений", int.Parse(specData[4]) },
+
+                { "Заявлений", applications },
                 { "Макс на бюджет", int.Parse(specData[1]) },
                 { "Макс на платку", int.Parse(specData[3]) },
-                { "Олимпиадники", specData[6] == "" ? 0 : int.Parse(specData[6]) },
+
+                { "Средний балл", allScore/applications },
+                { "Проходной балл", enterScore },
+
+                { "Олимпиадники",  olimpCount },
                 { "Распределение по баллам", scoreDict },
             };
             return info;
