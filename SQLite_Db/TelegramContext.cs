@@ -8,6 +8,7 @@ namespace Parser.SQLite_Db
     class TelegramContext : DbContext
     {
         public DbSet<User> Users { get; set; }
+        public DbSet<TimeUpdate> LastUpdateTime { get; set; }
 
         public TelegramContext()
         {

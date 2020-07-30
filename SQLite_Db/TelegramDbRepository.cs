@@ -55,5 +55,28 @@ namespace Parser.SQLite_Db
             else
                 Console.WriteLine("EXCEPTION!!!!!!!!!");
         }
+
+        public static DateTime? LastUpdateTime
+        {
+            get 
+            {
+                var db = new TelegramContext();
+                var time = db.LastUpdateTime.FirstOrDefault();
+                if (time == null)
+                    return null;
+
+                return time.Time;
+            }
+            set 
+            {
+                var db = new TelegramContext();
+                db.LastUpdateTime.RemoveRange(db.LastUpdateTime);
+                if (value == null)
+                    throw new Exception("Can't apply null to TimeUpdate.Time!");
+                db.LastUpdateTime.Add(new TimeUpdate { Time = (DateTime)value });
+                db.SaveChanges();
+            }
+        }
+
     }
 }

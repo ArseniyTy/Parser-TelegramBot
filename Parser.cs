@@ -1,5 +1,6 @@
 ﻿using AngleSharp;
 using AngleSharp.Dom;
+using Parser.SQLite_Db;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -14,22 +15,32 @@ namespace Parser
         private static readonly IBrowsingContext context = BrowsingContext.New(config);
         private const string URL = "https://abit.bsu.by/formk1?id=1";
 
-        public static async Task<string> ToString_GetSpecUpdateAsync(string spec, uint userScore)
+        public static async Task<string> ToString_GetSpecUpdateAsync(string spec, uint userScore, uint? prevPos)
         {
             var info = await GetSpecInfoAsync(spec);
 
+            var updateTime = DateTime.Parse((string)info["Последнее обновление"]);
+            if (updateTime == TelegramDbRepository.LastUpdateTime)
+                return null;
+            else
+                TelegramDbRepository.LastUpdateTime = updateTime;
+
+
             var dictScore = (Dictionary<string, int>) info["Распределение по баллам"];
             int maxPeople = (int) info["Макс на бюджет"];
-            int peopleCount = (int) info["Олимпиадники"];
+            int pos = (int) info["Олимпиадники"];
             foreach (var score in dictScore)
             {
                 uint u_bound = uint.Parse(score.Key.Split('-')[1]);
                 if (userScore <= u_bound)
-                    peopleCount+= score.Value;
+                    pos+= score.Value;
             }
-            string toReturn = $"Вы {peopleCount}/{maxPeople} в конкурсе (в худшем случае)!\n" +
-                              $"На специальности {info["Олимпиадники"]} олимпиадников";
-            return toReturn;
+            if (prevPos == pos)
+                return null;
+
+            return $"Обновление!\n" +
+                $"Вы {pos}/{maxPeople} в конкурсе (в худшем случае)!\n" +
+                $"На специальности {info["Олимпиадники"]} олимпиадников";
         }
         public static async Task<string> ToString_GetSpecInfoAsync(string spec)
         {

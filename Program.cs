@@ -15,8 +15,6 @@ namespace Parser
             using (var db = new TelegramContext())
             {
                 db.Database.Migrate();
-                //db.Users.RemoveRange(db.Users);
-                //db.SaveChanges();
             }
 
 

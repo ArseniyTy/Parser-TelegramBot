@@ -8,14 +8,11 @@ using System.Threading;
 using System.Threading.Tasks;
 using Telegram.Bot;
 using Telegram.Bot.Args;
+using Telegram.Bot.Types.ReplyMarkups;
 
 namespace Parser
 {
-    //TODO: 1) Поставить, чтобы он обновлял только если что-то меняется (просматривает 
-    // сначала дату, а потом старую позицию (поместить в бд)!
-    // поставить, чтобы чекал раз в минуту мб
-    // 2) Захостить
-    // 3) Сделать кнопки по выбору специальностей!
+    //TODO: Захостить
     static class BSU_RatingBot
     {
         private static Timer _timer;
@@ -26,33 +23,36 @@ namespace Parser
             _botClient = new TelegramBotClient(ACCESS_TOKEN);
             _botClient.OnMessage += Bot_OnMessage;
         }
-        public static void StartReceiving() 
-        { 
+        public static void StartReceiving()
+        {
             _botClient.StartReceiving();
             _timer = new Timer(
                 e => NotifyUsersAsync(),
                 null,
                 TimeSpan.Zero,
+                //TimeSpan.FromMinutes(1)
                 TimeSpan.FromSeconds(5)
             );
         }
-        public static void StopReceiving() 
-        { 
-            _botClient.StopReceiving(); 
-            _timer.Dispose(); 
+        public static void StopReceiving()
+        {
+            _botClient.StopReceiving();
+            _timer.Dispose();
         }
 
-        //сравнивать время и обновлять!
         private static async void NotifyUsersAsync()
         {
             var users = TelegramDbRepository.GetAllNotifyUsers();
-            foreach(var user in users)
+            foreach (var user in users)
             {
-                string message = await Parser.ToString_GetSpecUpdateAsync(user.Spec, (uint) user.CTScore);
-                await _botClient.SendTextMessageAsync(
-                  chatId: user.Id,
-                  text: message
-                );
+                string message = await Parser.ToString_GetSpecUpdateAsync(user.Spec, (uint)user.CTScore, user.RatePosition);         
+                if(message!=null)
+                {
+                    await _botClient.SendTextMessageAsync(
+                      chatId: user.Id,
+                      text: message
+                    );
+                }
             }
         }
 
@@ -69,13 +69,58 @@ namespace Parser
                 long id = e.Message.Chat.Id;
                 var status = TelegramDbRepository.GetStatusAndCreateIfNotExist(id);
                 Console.WriteLine(status);
+
                 string textToSend = "";
+                var replyKeyboardMarkup = new ReplyKeyboardMarkup();
+                //replyKeyboardMarkup.OneTimeKeyboard = true;
+                var specEnterKeyboard = new KeyboardButton[][]
+                {
+                    new KeyboardButton[]
+                    {
+                        new KeyboardButton("информатика"),
+                        new KeyboardButton("прикладная информатика (направление - программное обеспечение компьютерных систем)"),
+                    },
+                    new KeyboardButton[]
+                    {
+                        new KeyboardButton("теология"),
+                    },
+                    new KeyboardButton[]
+                    {
+                        new KeyboardButton("история (по направлениям)"),
+                    },
+                    new KeyboardButton[]
+                    {
+                        new KeyboardButton("математика и информационные технологии (направление - веб-программирование и интернет-технологии)"),
+                    },
+                    new KeyboardButton[]
+                    {
+                        new KeyboardButton("геоинформационные системы (направление - земельно-кадастровые)"),
+                        new KeyboardButton("геоэкология"),
+                    },
+                    new KeyboardButton[]
+                    {
+                        new KeyboardButton("информация и коммуникация"),
+                    },
+                    new KeyboardButton[]
+                    {
+                        new KeyboardButton("международное право"),
+                        new KeyboardButton("международные отношения"),
+                    },
+                    new KeyboardButton[]
+                    {
+                        new KeyboardButton("экономическая информатика"),
+                    },
+                    new KeyboardButton[]
+                    {
+                        new KeyboardButton("правоведение"),
+                    },
+                };
                 switch (status)
                 {
                     case Status.Default:
                     case Status.ToNotify:
                         {
-                            switch(e.Message.Text)
+                            switch (e.Message.Text)
                             {
                                 case "/start":
                                 case "/help":
@@ -91,12 +136,14 @@ namespace Parser
                                 case "/info":
                                     {
                                         textToSend = "Введите специальность:";
+                                        replyKeyboardMarkup.Keyboard = specEnterKeyboard;
                                         TelegramDbRepository.UpdateUser(id, Status.SpecEnterWaiting);
                                         break;
                                     }
                                 case "/notify":
                                     {
                                         textToSend = "Введите вашу специальность:";
+                                        replyKeyboardMarkup.Keyboard = specEnterKeyboard;
                                         TelegramDbRepository.UpdateUser(id, Status.ToNotify_SpecEnterWaiting);
                                         break;
                                     }
@@ -125,13 +172,17 @@ namespace Parser
                             {
                                 textToSend = "Такой специальности не существует! Введите ещё раз:";
                             }
+                            replyKeyboardMarkup.Keyboard = specEnterKeyboard;
                             break;
                         }
                     case Status.ToNotify_SpecEnterWaiting:
                         {
                             var spec = await Parser.GetSpecRowAsync(e.Message.Text.ToLower());
                             if (spec == null)
+                            {
                                 textToSend = "Такой специальности не существует! Введите данные ещё раз";
+                                replyKeyboardMarkup.Keyboard = specEnterKeyboard;
+                            }
                             else
                             {
                                 textToSend = "Отлично! Теперь напишите ваш балл:";
@@ -160,9 +211,12 @@ namespace Parser
                         }
                 }
 
+                
                 await _botClient.SendTextMessageAsync(
                   chatId: e.Message.Chat,
-                  text: textToSend
+                  text: textToSend,
+                  replyMarkup: replyKeyboardMarkup.Keyboard!=null ? 
+                                        replyKeyboardMarkup : null
                 );
             }
         }

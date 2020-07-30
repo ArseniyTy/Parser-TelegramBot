@@ -7,8 +7,9 @@ namespace Parser.SQLite_Db
     class User
     {
         public long Id { get; set; }
+        public Status Status { get; set; }
         public uint? CTScore { get; set; }
         public string Spec { get; set; }
-        public Status Status { get; set; }
+        public uint? RatePosition { get; set; }
     }
 }
