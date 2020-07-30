@@ -30,8 +30,7 @@ namespace Parser
                 e => NotifyUsersAsync(),
                 null,
                 TimeSpan.Zero,
-                //TimeSpan.FromMinutes(1)
-                TimeSpan.FromSeconds(5)
+                TimeSpan.FromMinutes(1)
             );
         }
         public static void StopReceiving()
@@ -122,7 +121,7 @@ namespace Parser
                                 case "/start":
                                 case "/help":
                                     {
-                                        textToSend = "У бота есть несколько доступных команд:\n" +
+                                        textToSend = "Доступных команд:\n" +
                                             "1) /help - получение инструкции (что вы читаете сейчас)\n" +
                                             "2) /info - получение информации о любой специальности\n" +
                                             "3) /notify - начать получать уведомления об изменении вашей " +
