@@ -18,13 +18,13 @@ namespace Parser
             //}
 
 
-            //BSU_RatingBot.StartReceiving();
-            //Console.WriteLine("Press any key to exit");
-            //Console.ReadKey();
-            //BSU_RatingBot.StopReceiving();
+            BSU_RatingBot.StartReceiving();
+            Console.WriteLine("Press any key to exit");
+            Console.ReadKey();
+            BSU_RatingBot.StopReceiving();
 
 
-            Console.WriteLine(await Parser.ToString_GetSpecInfoAsync("теология"));
+            //Console.WriteLine(await Parser.ToString_GetSpecInfoAsync("теология"));
         }
     }
 }

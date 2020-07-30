@@ -73,9 +73,14 @@ namespace Parser
             if(specRow==null)
                 return null;
 
-            return specRow.QuerySelectorAll("td")
-                           .Select(t => t.TextContent)
-                           .ToList();
+
+            var data = specRow.QuerySelectorAll("td")
+                              .ToList();
+            if(!data[0].ClassList.Contains("vl"))
+                data.RemoveRange(0, 2);
+
+            return data.Select(t => t.TextContent)
+                       .ToList();
         }
 
         private async static Task<Dictionary<string, object>> GetSpecInfoAsync(string spec)
@@ -133,7 +138,7 @@ namespace Parser
                 { "Макс на бюджет", int.Parse(specData[1]) },
                 { "Макс на платку", int.Parse(specData[3]) },
 
-                { "Средний балл", allScore/applications },
+                { "Средний балл", allScore/(applications-olimpCount) },
                 { "Проходной балл", enterScore },
 
                 { "Олимпиадники",  olimpCount },
