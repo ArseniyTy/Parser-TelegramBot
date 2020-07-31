@@ -1,26 +1,38 @@
-﻿using AngleSharp;
-using AngleSharp.Dom;
-using Parser.SQLite_Db;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
+
+using AngleSharp;
+
+using Parser.SQLite_Db;
 
 namespace Parser
 {
+    /// <summary>
+    /// <para>Made with AngleSharp</para>
+    /// <para>Static class that parses webPage and processes this info</para>
+    /// </summary>
     static class Parser
     {
         private static readonly IConfiguration config = Configuration.Default.WithDefaultLoader();
         private static readonly IBrowsingContext context = BrowsingContext.New(config);
         private const string URL = "https://abit.bsu.by/formk1?id=1";
 
-        public static async Task<string> ToString_GetSpecUpdateAsync(string spec, uint userScore, uint? prevPos)
+        /// <summary>
+        /// It calls when you need to check on server: are there any updates?
+        /// </summary>
+        /// <param name="spec">Users specialty</param>
+        /// <param name="userScore">Users CT score</param>
+        /// <param name="prevPos">Users previos update position in rating</param>
+        /// <param name="userId">Users id</param>
+        /// <returns>String with info or null if no updates</returns>
+        public static async Task<string> ToString_GetSpecUpdateAsync(string spec, uint userScore, uint? prevPos, long userId)
         {
             var info = await GetSpecInfoAsync(spec);
 
             var updateTime = DateTime.Parse((string)info["Последнее обновление"]);
-            if (updateTime == TelegramDbRepository.LastUpdateTime)
+            if (updateTime == TelegramDbRepository.LastUpdateTime && prevPos!=null)
                 return null;
             else
                 TelegramDbRepository.LastUpdateTime = updateTime;
@@ -38,10 +50,18 @@ namespace Parser
             if (prevPos == pos)
                 return null;
 
+            TelegramDbRepository.UpdateUser(userId, pos: (uint?) pos);
             return $"Обновление!\n" +
                 $"Вы {pos}/{maxPeople} в конкурсе (в худшем случае)!\n" +
                 $"На специальности {info["Олимпиадники"]} олимпиадников";
         }
+
+
+        /// <summary>
+        /// Converts info about speciality from GetSpecInfoAsync to string
+        /// </summary>
+        /// <param name="spec">Speciality you want to get info about</param>
+        /// <returns>String with info about speciality</returns>
         public static async Task<string> ToString_GetSpecInfoAsync(string spec)
         {
             var info = await GetSpecInfoAsync(spec);
@@ -61,28 +81,11 @@ namespace Parser
             return toReturn.Remove(0,1);
         }
 
-        public async static Task<List<string>> GetSpecRowAsync(string spec)
-        {
-            var document = await context.OpenAsync(URL);
-            var tableRows = document.QuerySelectorAll("#Abit_K11_TableResults tbody tr");
-
-            var specRow = tableRows
-                .FirstOrDefault(row => row.QuerySelector("td.vl") != null ?
-                row.QuerySelector("td.vl").TextContent == spec : false);
-
-            if(specRow==null)
-                return null;
-
-
-            var data = specRow.QuerySelectorAll("td")
-                              .ToList();
-            if(!data[0].ClassList.Contains("vl"))
-                data.RemoveRange(0, 2);
-
-            return data.Select(t => t.TextContent)
-                       .ToList();
-        }
-
+        /// <summary>
+        /// Contains some logic about processing parsed info
+        /// </summary>
+        /// <param name="spec">Speciality you want to get info about</param>
+        /// <returns>Dictionary with info about speciality</returns>
         private async static Task<Dictionary<string, object>> GetSpecInfoAsync(string spec)
         {
             var document = await context.OpenAsync(URL);
@@ -145,6 +148,34 @@ namespace Parser
                 { "Распределение по баллам", scoreDict },
             };
             return info;
+        }
+
+
+        /// <summary>
+        /// Parses row with speciality data
+        /// </summary>
+        /// <param name="spec">Speciality you want to get info about</param>
+        /// <returns>List of string data about speciality</returns>
+        public async static Task<List<string>> GetSpecRowAsync(string spec)
+        {
+            var document = await context.OpenAsync(URL);
+            var tableRows = document.QuerySelectorAll("#Abit_K11_TableResults tbody tr");
+
+            var specRow = tableRows
+                .FirstOrDefault(row => row.QuerySelector("td.vl") != null ?
+                row.QuerySelector("td.vl").TextContent == spec : false);
+
+            if (specRow == null)
+                return null;
+
+
+            var data = specRow.QuerySelectorAll("td")
+                              .ToList();
+            if (!data[0].ClassList.Contains("vl"))
+                data.RemoveRange(0, 2);
+
+            return data.Select(t => t.TextContent)
+                       .ToList();
         }
     }
 }

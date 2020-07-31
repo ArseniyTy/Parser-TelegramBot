@@ -35,7 +35,7 @@ namespace Parser.SQLite_Db
             return user.Status;
         }
 
-        public static void UpdateUser(long id, Status? status = null, string spec = null, uint? score = null)
+        public static void UpdateUser(long id, Status? status = null, string spec = null, uint? score = null, uint? pos = null)
         {
             var db = new TelegramContext();
             var user = db.Users.FirstOrDefault(u => u.Id == id);
@@ -47,6 +47,8 @@ namespace Parser.SQLite_Db
                     user.Spec = spec;
                 if (score != null && score >= 0)
                     user.CTScore = score;
+                if (pos != null && pos >= 0)
+                    user.RatePosition = pos;
 
                 db.Users.Update(user);
                 db.SaveChanges();
